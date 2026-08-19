@@ -49,9 +49,8 @@ echo "Compressing"
 # Copy icudtl.dat to build output so it sits next to the binary
 [ -f ./build-env/icudtl.dat ] && cp ./build-env/icudtl.dat ./build/icudtl.dat
 
-rm -f ./build/asphyxia-core-linux-x64.zip
+rm -f ./build/asphyxia-core-linux.zip
 cd build
-zip -qq asphyxia-core-linux-x64.zip asphyxia-core
-[ -f icudtl.dat ] && zip -qq asphyxia-core-linux-x64.zip icudtl.dat
+zip -qq asphyxia-core-linux.zip asphyxia-core
+[ -f icudtl.dat ] && zip -qq asphyxia-core-linux.zip icudtl.dat
 cd ..
-zip -qq ./build/asphyxia-core-linux-x64.zip -r plugins
