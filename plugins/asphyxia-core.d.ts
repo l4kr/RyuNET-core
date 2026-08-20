@@ -16,6 +16,13 @@ declare const CORE_VERSION_MAJOR: number;
  */
 declare const CORE_VERSION_MINOR: number;
 
+/**
+ * True when the server is running in dev mode (--dev/--console). Use this to
+ * gate verbose/diagnostic-only logging so it never leaks into normal-mode
+ * (production) logs.
+ */
+declare const CORE_DEV_MODE: boolean;
+
 declare type KNumberType =
   | 's8'
   | 'u8'

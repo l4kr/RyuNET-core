@@ -221,6 +221,9 @@ export function LoadExternalPlugins() {
   $.CORE_VERSION = VERSION;
   $.CORE_VERSION_MAJOR = parseInt(VERSION.split('.')[0].substr(1));
   $.CORE_VERSION_MINOR = parseInt(VERSION.split('.')[1]);
+  // Lets plugins gate verbose/diagnostic-only logging behind dev mode
+  // (--dev/--console), so debug output never leaks into normal-mode logs.
+  $.CORE_DEV_MODE = !!ARGS.dev;
 
   function EnableRegisterNamespace(plugin: EamusePlugin) {
     $.R.GameCode = (gameCode: string) => {
