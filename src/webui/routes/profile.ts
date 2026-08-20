@@ -155,6 +155,16 @@ export function getSdvxDiff(mid: number | string, type: number | string): string
   return level ? `${name} ${level}` : name;
 }
 
+export const getIidxDiffStr = (clid: number) => {
+  if (clid === undefined || clid === -1) return 'Diff undefined';
+  const TYPE_MAP: Record<number, string> = {
+    0: 'BGN', 1: 'NRM', 2: 'HYP', 3: 'ANO', 4: 'LEG',
+    6: 'NRM', 7: 'HYP', 8: 'ANO', 9: 'LEG',
+  };
+  const playType = clid < 5 ? 'SP' : 'DP';
+  return `${playType} ${TYPE_MAP[clid] || 'Unknown'}`;
+};
+
 /** O(1) title lookup from cached maps. */
 export function getSdvxTitle(mid: number | string): string {
   const midStr = String(mid);
@@ -162,7 +172,7 @@ export function getSdvxTitle(mid: number | string): string {
   return song?.info?.title_name || `Song ID ${mid}`;
 }
 
-function getIidxTitle(mid: number | string): string {
+export function getIidxTitle(mid: number | string): string {
   const midStr = String(mid);
   const song = _iidxSongMap.get(midStr) as any;
   return song?.title || `Song ID ${mid}`;
@@ -577,16 +587,6 @@ profileRouter.get(
 
           const exScores = [...flatScores].sort((a: any, b: any) => b.ex_score - a.ex_score);
           const top50 = exScores.slice(0, 50);
-
-          const getIidxDiffStr = (clid: number) => {
-            if (clid === undefined || clid === -1) return 'Diff undefined';
-            const TYPE_MAP: Record<number, string> = {
-              0: 'BGN', 1: 'NRM', 2: 'HYP', 3: 'ANO', 4: 'LEG',
-              6: 'NRM', 7: 'HYP', 8: 'ANO', 9: 'LEG',
-            };
-            const playType = clid < 5 ? 'SP' : 'DP';
-            return `${playType} ${TYPE_MAP[clid] || 'Unknown'}`;
-          };
 
           iidxStats.topPlays = top50.map((play: any) => ({
              title: getIidxTitle(play.mid),

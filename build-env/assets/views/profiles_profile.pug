@@ -688,7 +688,7 @@ block content
           if iidxStats.recentPlays && iidxStats.recentPlays.length > 0
             h3.section-title 🕒 Recent Plays
             .notification.is-dark.has-text-left.mb-6
-               ul(style="list-style: none; padding: 0;")
+               ul#iidx-recent-plays-list(style="list-style: none; padding: 0;")
                  each play in iidxStats.recentPlays
                    li.mb-2(class=(play.clear ? getIidxClearClass(play.clear) : '') style="padding-left: 10px; border-radius: 4px;")
                      span.icon.is-small(style="color: #00d1b2;"): i.mdi.mdi-history
@@ -1017,6 +1017,51 @@ block scripts
             '<div style="color: #888; font-size: 0.8rem;">Just now</div>' +
           '</div>' +
         '</div>';
+
+      list.insertBefore(li, list.firstChild);
+      while (list.children.length > 100) {
+        list.removeChild(list.lastChild);
+      }
+    });
+
+    function getIidxClearClassJS(clearVal) {
+      var c = Number(clearVal);
+      if (c === 7) return 'clear-fc';
+      if (c === 6) return 'clear-exh';
+      if (c === 5) return 'clear-hard';
+      if (c === 4) return 'clear-clear';
+      if (c === 3) return 'clear-easy';
+      if (c === 2) return 'clear-assist';
+      if (c === 1) return 'clear-fail';
+      return '';
+    }
+
+    // Live update: same as the SDVX listener above, but for IIDX (no jacket
+    // image/click modal for this section, matching its existing markup).
+    window.addEventListener('live-score', function(e) {
+      var evt = e.detail;
+      if (!evt || evt.game !== 'iidx' || String(evt.refid) !== String(PROFILE_REFID)) return;
+
+      var list = document.getElementById('iidx-recent-plays-list');
+      if (!list) return;
+
+      var play = {
+        title: evt.title || ('Song #' + evt.mid),
+        diff: evt.diff || '',
+        score: evt.score || 0,
+        clear: evt.clear || 0
+      };
+
+      var li = document.createElement('li');
+      li.className = 'mb-2 live-recent-play' + (play.clear ? ' ' + getIidxClearClassJS(play.clear) : '');
+      li.style.cssText = 'padding-left: 10px; border-radius: 4px;';
+      li.innerHTML =
+        '<span class="icon is-small" style="color: #00d1b2;"><i class="mdi mdi-history"></i></span>' +
+        '<span class="has-text-weight-bold">' + MODAL_PLAYER_NAME + '</span>' +
+        ' played ' +
+        '<span class="has-text-weight-bold" style="color: #66c2ff;">' + play.title + ' [' + play.diff + ']</span>' +
+        ' - ' + play.score +
+        '<span class="is-pulled-right" style="color: #888; font-size: 0.8rem;">Just now</span>';
 
       list.insertBefore(li, list.firstChild);
       while (list.children.length > 100) {

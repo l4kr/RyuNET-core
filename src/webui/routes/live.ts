@@ -18,6 +18,10 @@ async function enrichScoreEvent(evt: ScoreSubmitPayload): Promise<any> {
       enriched.title = getSdvxTitle(evt.mid);
       enriched.diff = getSdvxDiff(evt.mid, evt.type);
       enriched.jacketUrl = sdvxJacketUrl(evt.mid, evt.type);
+    } else if (evt.game === 'iidx' && evt.mid !== undefined && evt.clid !== undefined) {
+      const { getIidxTitle, getIidxDiffStr } = require('./profile');
+      enriched.title = getIidxTitle(evt.mid);
+      enriched.diff = getIidxDiffStr(evt.clid);
     }
   } catch { /* best effort enrichment only */ }
 
