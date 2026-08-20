@@ -246,7 +246,7 @@ html.has-aside-left.has-aside-mobile-transition.has-navbar-fixed-top.has-aside-e
             if (evt.error != null) judgementBits.push('ERR ' + fmtNum(evt.error));
 
             var jacketHtml = evt.jacketUrl
-              ? '<img class="live-toast-jacket" src="' + evt.jacketUrl + '" onerror="this.style.visibility=\'hidden\'">'
+              ? '<img class="live-toast-jacket" src="' + evt.jacketUrl + '" onerror="this.onerror=null;this.src=\'https://jackets.ryu7w7.xyz/sdvx/jk_dummy.png\';">'
               : '';
 
             el.innerHTML =
