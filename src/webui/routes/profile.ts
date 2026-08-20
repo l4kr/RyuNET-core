@@ -23,23 +23,35 @@ import { sdvxJacketUrl, prewarmJacketCache } from '../../utils/sdvx_jacket_resol
 import rateLimit from 'express-rate-limit';
 
 // ---------------------------------------------------------------------------
-// Module-level song DB cache — loaded once, never on each request
+// Module-level song DB cache -- reloaded automatically when the backing file
+// changes (see loadSongDBs below), so it never has to be rebuilt on every
+// request.
 // ---------------------------------------------------------------------------
 let _sdvxSongs: any = null;
 let _sdvxCustomSongs: any = null;
 let _iidxSongs: any = null;
 
-// O(1) lookup maps built once from the song DBs
+let _sdvxSongsMtime = 0;
+let _sdvxCustomSongsMtime = 0;
+let _iidxSongsMtime = 0;
+
+// O(1) lookup maps, rebuilt whenever the backing file is reloaded
 let _sdvxSongMap: Map<string, any> = new Map();
 let _sdvxCustomSongMap: Map<string, any> = new Map();
 let _iidxSongMap: Map<string, any> = new Map();
 
-function loadSongDBs(): void {
+// Reloads the song DBs only when the underlying file's mtime changes, so
+// newly-approved custom charts / updated song DBs show up without requiring
+// a full server restart, while still avoiding a disk read + JSON parse on
+// every single request.
+export function loadSongDBs(): void {
   try {
-    if (!_sdvxSongs) {
-      _sdvxSongs = JSON.parse(fs.readFileSync(
-        path.join(PLUGIN_PATH, 'sdvx@asphyxia', 'webui', 'asset', 'json', 'music_db.json'), 'utf8'
-      ));
+    const p = path.join(PLUGIN_PATH, 'sdvx@asphyxia', 'webui', 'asset', 'json', 'music_db.json');
+    const mtime = fs.statSync(p).mtimeMs;
+    if (!_sdvxSongs || mtime !== _sdvxSongsMtime) {
+      _sdvxSongs = JSON.parse(fs.readFileSync(p, 'utf8'));
+      _sdvxSongsMtime = mtime;
+      _sdvxSongMap = new Map();
       if (_sdvxSongs?.mdb?.music) {
         for (const s of _sdvxSongs.mdb.music) {
           _sdvxSongMap.set(String(s.id), s);
@@ -48,10 +60,12 @@ function loadSongDBs(): void {
     }
   } catch (e) {}
   try {
-    if (!_sdvxCustomSongs) {
-      _sdvxCustomSongs = JSON.parse(fs.readFileSync(
-        path.join(PLUGIN_PATH, 'sdvx@asphyxia', 'webui', 'asset', 'json', 'custom_music_db.json'), 'utf8'
-      ));
+    const p = path.join(PLUGIN_PATH, 'sdvx@asphyxia', 'webui', 'asset', 'json', 'custom_music_db.json');
+    const mtime = fs.statSync(p).mtimeMs;
+    if (!_sdvxCustomSongs || mtime !== _sdvxCustomSongsMtime) {
+      _sdvxCustomSongs = JSON.parse(fs.readFileSync(p, 'utf8'));
+      _sdvxCustomSongsMtime = mtime;
+      _sdvxCustomSongMap = new Map();
       if (_sdvxCustomSongs?.mdb?.music) {
         for (const s of _sdvxCustomSongs.mdb.music) {
           _sdvxCustomSongMap.set(String(s.id), s);
@@ -60,10 +74,12 @@ function loadSongDBs(): void {
     }
   } catch (e) {}
   try {
-    if (!_iidxSongs) {
-      _iidxSongs = JSON.parse(fs.readFileSync(
-        path.join(PLUGIN_PATH, 'iidx@asphyxia', 'data', 'music_data.json'), 'utf8'
-      ));
+    const p = path.join(PLUGIN_PATH, 'iidx@asphyxia', 'data', 'music_data.json');
+    const mtime = fs.statSync(p).mtimeMs;
+    if (!_iidxSongs || mtime !== _iidxSongsMtime) {
+      _iidxSongs = JSON.parse(fs.readFileSync(p, 'utf8'));
+      _iidxSongsMtime = mtime;
+      _iidxSongMap = new Map();
       for (const [id, val] of Object.entries(_iidxSongs as any)) {
         _iidxSongMap.set(String(id), val);
       }

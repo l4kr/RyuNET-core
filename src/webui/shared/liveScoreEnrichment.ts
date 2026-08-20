@@ -14,12 +14,14 @@ export async function enrichScoreEvent(evt: ScoreSubmitPayload): Promise<any> {
     if (evt.game === 'sdvx' && evt.mid !== undefined && evt.type !== undefined) {
       // Lazily required to avoid a circular import (profile.ts also pulls in
       // shared helpers that eventually touch this module's callers).
-      const { getSdvxTitle, getSdvxDiff } = require('../routes/profile');
+      const { getSdvxTitle, getSdvxDiff, loadSongDBs } = require('../routes/profile');
+      loadSongDBs();
       enriched.title = getSdvxTitle(evt.mid);
       enriched.diff = getSdvxDiff(evt.mid, evt.type);
       enriched.jacketUrl = sdvxJacketUrl(evt.mid, evt.type);
     } else if (evt.game === 'iidx' && evt.mid !== undefined && evt.clid !== undefined) {
-      const { getIidxTitle, getIidxDiffStr } = require('../routes/profile');
+      const { getIidxTitle, getIidxDiffStr, loadSongDBs } = require('../routes/profile');
+      loadSongDBs();
       enriched.title = getIidxTitle(evt.mid);
       enriched.diff = getIidxDiffStr(evt.clid);
     }
