@@ -216,7 +216,7 @@ export async function renderRecentScore(play: any, profile: any): Promise<Buffer
   const boxX = 540;
   const boxY = headerHeight + 20;
   const boxW = 236;
-  const boxH = 175;
+  const boxH = 145;
 
   ctx.fillStyle = COLORS.judgementBoxBg;
   ctx.beginPath();
@@ -234,16 +234,15 @@ export async function renderRecentScore(play: any, profile: any): Promise<Buffer
   ctx.fillStyle = 'rgba(255,255,255,0.06)';
   ctx.fillRect(boxX + 18, boxY + 32, boxW - 36, 1);
 
-  const jLabels = ['S-CRITICAL', 'CRITICAL', 'NEAR', 'ERROR'];
-  const jColors = [COLORS.scrit, COLORS.crit, COLORS.near, COLORS.error];
+  const jLabels = ['CRITICAL', 'NEAR', 'ERROR'];
+  const jColors = [COLORS.crit, COLORS.near, COLORS.error];
   const jVals = [
-    play.s_critical || play.just || 0,
     play.critical || 0,
     play.near || 0,
     play.error || 0
   ];
 
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 3; i++) {
     const y = boxY + 65 + (i * 30);
     
     // Dot

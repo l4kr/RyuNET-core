@@ -70,8 +70,7 @@ block head
     .j-sub-item { display: flex; align-items: center; gap: 4px; }
     .j-sub-item .arrow-early { color: #44bbff; }
     .j-sub-item .arrow-late { color: #ff8844; }
-    .j-row-scrit .j-dot { background: #ffe600; }
-    .j-row-scrit .j-label, .j-row-scrit .j-value { color: #ffe600; }
+
     .j-row-crit .j-dot { background: #ffaa00; }
     .j-row-crit .j-label, .j-row-crit .j-value { color: #ffaa00; }
     .j-row-near .j-dot { background: #44ffcc; }
@@ -917,14 +916,11 @@ block scripts
         document.getElementById('modal-score').innerText = Number(data.score || 0).toLocaleString();
         document.getElementById('modal-exscore').innerText = Number(data.exscore || 0).toLocaleString();
         document.getElementById('modal-maxchain').innerText = Number(data.maxChain || 0).toLocaleString();
-        document.getElementById('modal-scrit').innerText = Number(data.s_critical || 0).toLocaleString();
         document.getElementById('modal-crit').innerText = Number(data.critical || 0).toLocaleString();
         document.getElementById('modal-near').innerText = Number(data.near || 0).toLocaleString();
         document.getElementById('modal-error').innerText = Number(data.error || 0).toLocaleString();
         document.getElementById('modal-early').innerText = Number(data.early || 0).toLocaleString();
         document.getElementById('modal-late').innerText = Number(data.late || 0).toLocaleString();
-        document.getElementById('modal-crit-early').innerText = Number(data.criticalEarly || 0).toLocaleString();
-        document.getElementById('modal-crit-late').innerText = Number(data.criticalLate || 0).toLocaleString();
 
         var medalText = getSdvxMedalText(data.clear);
         document.getElementById('modal-medal').innerText = medalText;
@@ -993,9 +989,6 @@ block scripts
         isFirstPlace: false,
         maxChain: evt.maxChain || 0,
         critical: evt.critical || 0,
-        s_critical: evt.s_critical || 0,
-        criticalEarly: evt.criticalEarly || 0,
-        criticalLate: evt.criticalLate || 0,
         near: evt.near || 0,
         error: evt.error || 0,
         early: evt.early || 0,
@@ -1106,21 +1099,10 @@ block modal
 
         div.judgements-container
           div.judgements-title Judgements
-          div.judgement-row.j-row-scrit
-            span.j-dot
-            span.j-label S-CRITICAL
-            span.j-value#modal-scrit 0
           div.judgement-row.j-row-crit
             span.j-dot
             span.j-label CRITICAL
             span.j-value#modal-crit 0
-          div.j-sub-row#modal-crit-breakdown
-            span.j-sub-item
-              span.arrow-early ▲
-              span#modal-crit-early 0
-            span.j-sub-item
-              span.arrow-late ▼
-              span#modal-crit-late 0
           div.judgement-row.j-row-near
             span.j-dot
             span.j-label NEAR

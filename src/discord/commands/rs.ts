@@ -94,7 +94,6 @@ export async function handleRecentScoreCommand(interaction: any) {
     jacketUrl: sdvxJacketUrl(recent.mid, recent.type),
     maxChain: recent.maxChain || 0,
     critical: recent.critical || 0,
-    s_critical: recent.s_critical || recent.just || 0,
     near: recent.near || 0,
     error: recent.error || 0
   };
