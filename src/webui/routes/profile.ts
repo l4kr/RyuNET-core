@@ -13,7 +13,6 @@ import {
   FindUserByUsername,
   GET_DB,
   PLUGIN_PATH,
-  GetTachiTokenByRefid,
 } from '../../utils/EamuseIO';
 import { wrap, adminMiddleware, authMiddleware } from '../shared/middleware';
 import { data, userOwnsProfile } from '../shared/helpers';
@@ -22,7 +21,6 @@ import path from 'path';
 import fs from 'fs';
 import { sdvxJacketUrl, prewarmJacketCache } from '../../utils/sdvx_jacket_resolver';
 import rateLimit from 'express-rate-limit';
-import { getTachiRecentSdvxPlays } from '../shared/tachiRecentPlays';
 
 // ---------------------------------------------------------------------------
 // Module-level song DB cache — loaded once, never on each request
@@ -501,36 +499,6 @@ profileRouter.get(
               late: play.late || 0
             }));
 
-            // Prefer Tachi's own recent-scores history (the actual play, not the PB)
-            // when this user has a linked Tachi account. Falls back to the PB-based
-            // list above if there's no token or the request fails.
-            try {
-              const tachiToken = await GetTachiTokenByRefid(refid);
-              if (tachiToken) {
-                const tachiPlays = await getTachiRecentSdvxPlays(tachiToken);
-                if (tachiPlays && tachiPlays.length > 0) {
-                  sdvxStats.recentPlays = tachiPlays.map((play) => ({
-                    title: getSdvxTitle(play.mid),
-                    diff: getSdvxDiff(play.mid, play.type),
-                    score: play.score,
-                    exscore: play.exscore || 0,
-                    clear: play.clear,
-                    grade: play.grade || 0,
-                    dateStr: timeAgo(play.timeAchieved),
-                    jacketUrl: sdvxJacketUrl(play.mid, play.type),
-                    isFirstPlace: firstPlaceKeys.has(`${play.mid}:${play.type}`),
-                    maxChain: play.maxChain || 0,
-                    critical: play.critical || 0,
-                    s_critical: play.s_critical || 0,
-                    near: play.near || 0,
-                    error: play.error || 0,
-                    early: play.early || 0,
-                    late: play.late || 0
-                  }));
-                }
-              }
-            } catch (e) {}
-            
             // First Places — with timestamp from user's own records
             const { getCachedResult } = require('./leaderboard');
             const cachedFirsts = getCachedResult('sdvx_firstPlaces') || [];
