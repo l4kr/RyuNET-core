@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { ScoreEventBus, ScoreSubmitPayload } from '../../utils/ScoreEvents';
-import { FindCardsByRefid, FindUserByCardNumber } from '../../utils/EamuseIO';
+import { FindCardsByRefid, FindUserByCardNumber, FindProfile } from '../../utils/EamuseIO';
 import { sdvxJacketUrl } from '../../utils/sdvx_jacket_resolver';
 
 export const liveRouter = Router();
@@ -32,6 +32,11 @@ async function enrichScoreEvent(evt: ScoreSubmitPayload): Promise<any> {
         }
       }
     }
+  } catch { /* best effort enrichment only */ }
+
+  try {
+    const profile: any = await FindProfile(evt.refid);
+    enriched.avatarUrl = profile?.avatarUrl ? `/uploads/${profile.avatarUrl}` : '/static/img/avatar.jpg';
   } catch { /* best effort enrichment only */ }
 
   return enriched;

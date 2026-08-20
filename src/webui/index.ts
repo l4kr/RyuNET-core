@@ -21,6 +21,7 @@ import { lastfmRouter } from './routes/lastfm';
 import { profileRouter } from './routes/profile';
 import { leaderboardRouter } from './routes/leaderboard';
 import { liveRouter } from './routes/live';
+import { livefeedRouter } from './routes/livefeed';
 import { migrationRouter } from './routes/migration';
 import { settingsRouter } from './routes/settings';
 import { pluginRouter } from './routes/plugin';
@@ -114,6 +115,7 @@ webui.use(launcherRouter);
 webui.use(profileRouter);
 webui.use(leaderboardRouter);
 webui.use(liveRouter);
+webui.use(livefeedRouter);
 
 // Protected Routes
 webui.use(bearerTokenMiddleware);
