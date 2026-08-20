@@ -1232,6 +1232,8 @@ interface ScoreEventPayload {
   grade?: number | string;
   critical?: number;
   s_critical?: number;
+  criticalEarly?: number;
+  criticalLate?: number;
   near?: number;
   error?: number;
   early?: number;

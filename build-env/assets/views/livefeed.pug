@@ -143,6 +143,13 @@ block modal
             span.j-dot
             span.j-label CRITICAL
             span.j-value#lf-modal-crit 0
+          div.j-sub-row#lf-modal-crit-breakdown
+            span.j-sub-item
+              span.arrow-early ▲
+              span#lf-modal-crit-early 0
+            span.j-sub-item
+              span.arrow-late ▼
+              span#lf-modal-crit-late 0
           div.judgement-row.j-row-near
             span.j-dot
             span.j-label NEAR
@@ -231,6 +238,8 @@ block scripts
         document.getElementById('lf-modal-error').innerText = Number(data.error || 0).toLocaleString();
         document.getElementById('lf-modal-early').innerText = Number(data.early || 0).toLocaleString();
         document.getElementById('lf-modal-late').innerText = Number(data.late || 0).toLocaleString();
+        document.getElementById('lf-modal-crit-early').innerText = Number(data.criticalEarly || 0).toLocaleString();
+        document.getElementById('lf-modal-crit-late').innerText = Number(data.criticalLate || 0).toLocaleString();
         document.getElementById('lf-modal-medal').innerText = getMedalText(data.clear);
 
         document.getElementById('live-feed-modal').classList.add('is-active');
@@ -269,6 +278,8 @@ block scripts
         maxChain: evt.maxChain || 0,
         critical: evt.critical || 0,
         s_critical: evt.s_critical || 0,
+        criticalEarly: evt.criticalEarly || 0,
+        criticalLate: evt.criticalLate || 0,
         near: evt.near || 0,
         error: evt.error || 0,
         early: evt.early || 0,
