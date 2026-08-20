@@ -20,6 +20,7 @@ import { tachiRouter } from './routes/tachi';
 import { lastfmRouter } from './routes/lastfm';
 import { profileRouter } from './routes/profile';
 import { leaderboardRouter } from './routes/leaderboard';
+import { liveRouter } from './routes/live';
 import { migrationRouter } from './routes/migration';
 import { settingsRouter } from './routes/settings';
 import { pluginRouter } from './routes/plugin';
@@ -112,6 +113,7 @@ webui.use(launcherRouter);
 // Public/Guest allowed Routes
 webui.use(profileRouter);
 webui.use(leaderboardRouter);
+webui.use(liveRouter);
 
 // Protected Routes
 webui.use(bearerTokenMiddleware);

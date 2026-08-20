@@ -56,6 +56,18 @@ html.has-aside-left.has-aside-mobile-transition.has-navbar-fixed-top.has-aside-e
     block head
     link(rel="stylesheet", href="/static/css/bulma-fix.css")
     link(rel="stylesheet", href="/static/css/modern.css")
+    style.
+      .live-score-toasts { position: fixed; bottom: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column-reverse; gap: 8px; pointer-events: none; max-width: 320px; }
+      .live-score-toast { pointer-events: auto; display: flex; align-items: center; gap: 10px; background: rgba(20,20,32,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.4); animation: live-toast-in 0.25s ease-out; cursor: default; }
+      .live-score-toast.is-leaving { animation: live-toast-out 0.25s ease-in forwards; }
+      .live-score-toast img.live-toast-jacket { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: #222; }
+      .live-score-toast .live-toast-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+      .live-score-toast .live-toast-title { font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+      .live-score-toast .live-toast-meta { font-size: 11px; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+      .live-score-toast .live-toast-score { font-size: 11px; font-weight: 700; color: #44ffcc; font-variant-numeric: tabular-nums; }
+      .live-score-toast.is-new-best .live-toast-score { color: #ffd700; }
+      @keyframes live-toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes live-toast-out { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(10px); } }
     noscript
       style
         .
@@ -185,6 +197,8 @@ html.has-aside-left.has-aside-mobile-transition.has-navbar-fixed-top.has-aside-e
 
       block modal
 
+      #live-score-toasts.live-score-toasts
+
       script(type="text/javascript" src="/static/js/main.js")
       script.
         function updateOnlineUsers() {
@@ -207,4 +221,80 @@ html.has-aside-left.has-aside-mobile-transition.has-navbar-fixed-top.has-aside-e
         window.jdenticon_config = {
             backColor: "#222"
         };
+      script.
+        (function() {
+          var TOAST_LIMIT = 4;
+          var TOAST_LIFETIME_MS = 7000;
+
+          function fmtNum(n) {
+            return Number(n || 0).toLocaleString();
+          }
+
+          function buildToast(evt) {
+            var el = document.createElement('div');
+            el.className = 'live-score-toast' + (evt.isNewBest ? ' is-new-best' : '');
+
+            var title = evt.title || ('Chart #' + (evt.mid != null ? evt.mid : '?'));
+            var diff = evt.diff ? String(evt.diff).toUpperCase() : '';
+            var who = evt.username || 'A player';
+
+            var judgementBits = [];
+            if (evt.critical != null) judgementBits.push('CRIT ' + fmtNum(evt.critical));
+            if (evt.near != null) judgementBits.push('NEAR ' + fmtNum(evt.near));
+            if (evt.error != null) judgementBits.push('ERR ' + fmtNum(evt.error));
+
+            var jacketHtml = evt.jacketUrl
+              ? '<img class="live-toast-jacket" src="' + evt.jacketUrl + '" onerror="this.style.visibility=\'hidden\'">'
+              : '';
+
+            el.innerHTML =
+              jacketHtml +
+              '<div class="live-toast-body">' +
+                '<div class="live-toast-title">' + who + (evt.isNewBest ? ' \u2b50' : '') + '</div>' +
+                '<div class="live-toast-meta">' + title + (diff ? ' [' + diff + ']' : '') + '</div>' +
+                '<div class="live-toast-score">' + fmtNum(evt.score) +
+                  (judgementBits.length ? ' \u00b7 ' + judgementBits.join(' \u00b7 ') : '') +
+                '</div>' +
+              '</div>';
+
+            return el;
+          }
+
+          function pushToast(evt) {
+            var container = document.getElementById('live-score-toasts');
+            if (!container) return;
+
+            var el = buildToast(evt);
+            container.appendChild(el);
+
+            while (container.children.length > TOAST_LIMIT) {
+              container.removeChild(container.firstChild);
+            }
+
+            setTimeout(function() {
+              el.classList.add('is-leaving');
+              setTimeout(function() {
+                if (el.parentNode) el.parentNode.removeChild(el);
+              }, 300);
+            }, TOAST_LIFETIME_MS);
+          }
+
+          function connectLiveScores() {
+            if (typeof EventSource === 'undefined') return;
+
+            var source = new EventSource('/live/scores');
+            source.addEventListener('score', function(e) {
+              try {
+                pushToast(JSON.parse(e.data));
+              } catch (err) {
+                console.error('Failed to parse live score event', err);
+              }
+            });
+            source.onerror = function() {
+              // Browser auto-reconnects; nothing to do here.
+            };
+          }
+
+          document.addEventListener('DOMContentLoaded', connectLiveScores);
+        })();
       block scripts

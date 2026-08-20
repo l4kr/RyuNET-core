@@ -41,6 +41,7 @@ import {
   PluginRegisterFile,
 } from '../utils/ArgConfig';
 import { EamusePlugin, WebUIEventHandler } from './EamusePlugin';
+import { emitScoreSubmit } from '../utils/ScoreEvents';
 import { EamuseRouteHandler } from './EamuseRouteContainer';
 import xml2json from 'fast-xml-parser';
 import _ from 'lodash';
@@ -155,6 +156,19 @@ export function LoadExternalPlugins() {
     Update: WrapCall('DB.Update', APIUpdate, Pro({ updated: 0, docs: [] })),
     Upsert: WrapCall('DB.Upsert', APIUpsert, Pro({ updated: 0, docs: [], upsert: false })),
     Count: WrapCall('DB.Count', APICount, Pro(0)),
+  };
+
+  $.EVENTS = {
+    // Broadcasts that a score was just saved, in real time, to any WebUI
+    // clients listening on the live scores SSE stream (see routes/live.ts).
+    EmitScore: WrapCall(
+      'EVENTS.EmitScore',
+      (plugin: PluginDetect, payload: Record<string, any>) => {
+        emitScoreSubmit({ game: plugin.identifier.replace(/@asphyxia$/, ''), ...payload } as any);
+        return Pro(undefined);
+      },
+      Pro(undefined)
+    ),
   };
 
   $.U = {

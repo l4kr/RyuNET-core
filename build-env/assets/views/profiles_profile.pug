@@ -915,6 +915,8 @@ block scripts
         document.getElementById('modal-crit').innerText = Number(data.critical || 0).toLocaleString();
         document.getElementById('modal-near').innerText = Number(data.near || 0).toLocaleString();
         document.getElementById('modal-error').innerText = Number(data.error || 0).toLocaleString();
+        document.getElementById('modal-early').innerText = Number(data.early || 0).toLocaleString();
+        document.getElementById('modal-late').innerText = Number(data.late || 0).toLocaleString();
 
         var medalText = getSdvxMedalText(data.clear);
         document.getElementById('modal-medal').innerText = medalText;
@@ -995,6 +997,13 @@ block modal
             span.j-dot
             span.j-label NEAR
             span.j-value#modal-near 0
+          div.j-sub-row#modal-near-breakdown
+            span.j-sub-item
+              span.arrow-early ▲
+              span#modal-early 0
+            span.j-sub-item
+              span.arrow-late ▼
+              span#modal-late 0
 
           div.judgement-row.j-row-error
             span.j-dot
