@@ -1,4 +1,4 @@
-import { Logger } from '../Logger';
+import { Logger, fatalExit } from '../Logger';
 import { Migrator130 } from './130';
 import { Migrator } from './Migrator';
 import readline from 'readline';
@@ -39,8 +39,7 @@ export async function Migrate() {
       });
       rl.question('If you are ready to upgrade, enter YES: ', answer => {
         if (answer != 'YES') {
-          Logger.error('Migration cancelled, quiting');
-          process.exit(1);
+          fatalExit('Migration cancelled, quiting');
         }
 
         for (let i = startsFrom; i < MIGRATORS.length; ++i) {
@@ -48,9 +47,7 @@ export async function Migrate() {
           try {
             m.migrate();
           } catch (err) {
-            Logger.error(`Migration failed (${m.previousVersion()} -> ${m.thisVersion()}): `);
-            Logger.error(err);
-            process.exit(1);
+            fatalExit(`Migration failed (${m.previousVersion()} -> ${m.thisVersion()}): ${(err as any)?.stack || (err as any)?.message || String(err)}`);
           }
         }
         rl.close();

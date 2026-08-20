@@ -10,7 +10,7 @@ import {
   WriteFileOptions,
 } from 'fs';
 
-import { Logger } from './Logger';
+import { Logger, fatalExit } from './Logger';
 import path from 'path';
 import { SqliteStore } from './SqliteStore';
 import { nfc2card } from './CardCipher';
@@ -57,10 +57,9 @@ const LoadDatabase = async (file: string) => {
   const filename = path.basename(file);
 
   if (existsSync(file) && isLegacyNedbFile(file)) {
-    Logger.error(
+    fatalExit(
       `Savedata "${filename}" is in the legacy NeDB format. Run "node --experimental-sqlite scripts/migrate-nedb-to-sqlite.js" to convert your savedata before starting the server.`
     );
-    process.exit(1);
   }
 
   let DB: SqliteStore;
@@ -94,7 +93,7 @@ export const LoadCoreDB = async () => {
   CoreDB = await LoadDatabase(COREDB_FILE);
 
   if (!CoreDB) {
-    process.exit(1);
+    fatalExit('Failed to load core.db -- see the error above for details. Server did not start.');
   }
 };
 

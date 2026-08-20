@@ -15,6 +15,7 @@ import { initLiveFeedStore } from './utils/LiveFeedStore';
 import open from 'open';
 import { Migrate } from './utils/migration';
 import { StartDiscordBot } from './discord/bot';
+import { LOG_FILE_PATH } from './utils/Logger';
 
 // Any failure here previously died as a silent unhandled rejection/exception
 // -- never reaching Logger (so nothing in log.txt), and easy to miss on a
@@ -64,6 +65,8 @@ function Main() {
   Logger.info(` `);
   Logger.info(chalk.redBright(pad(`FREE SOFTWARE. BEWARE OF SCAMMERS.`, 60)));
   Logger.info(pad(`If you bought this software, request refund immediately.`, 60));
+  Logger.info(` `);
+  Logger.info(`Log file: ${LOG_FILE_PATH}`);
   Logger.info(` `);
 
   const EAMUSE = express();
