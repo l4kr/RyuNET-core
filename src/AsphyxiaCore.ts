@@ -16,6 +16,19 @@ import open from 'open';
 import { Migrate } from './utils/migration';
 import { StartDiscordBot } from './discord/bot';
 
+// Any failure here previously died as a silent unhandled rejection/exception
+// -- never reaching Logger (so nothing in log.txt), and easy to miss on a
+// terminal or invisible entirely under a process manager. Log everything,
+// loudly, to both console and log.txt, no matter where it happens.
+process.on('unhandledRejection', (reason: any) => {
+  Logger.error('[fatal] Unhandled rejection during startup/runtime:');
+  Logger.error(reason && reason.stack ? reason.stack : String(reason));
+});
+process.on('uncaughtException', (err: any) => {
+  Logger.error('[fatal] Uncaught exception:');
+  Logger.error(err && err.stack ? err.stack : String(err));
+});
+
 function isIPv6(ip: string) {
   return !!/(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/.test(
     ip
@@ -145,5 +158,12 @@ function Main() {
 Migrate().then(() => {
   LoadCoreDB()
     .then(() => SeedDefaultAdmin())
-    .then(Main);
+    .then(Main)
+    .catch((err) => {
+      Logger.error('[fatal] Startup failed after Migrate (LoadCoreDB/SeedDefaultAdmin/Main):');
+      Logger.error(err && err.stack ? err.stack : String(err));
+    });
+}).catch((err) => {
+  Logger.error('[fatal] Migrate() failed - server did not start:');
+  Logger.error(err && err.stack ? err.stack : String(err));
 });
