@@ -78,6 +78,11 @@ block head
     .j-row-near .j-label, .j-row-near .j-value { color: #44ffcc; }
     .j-row-error .j-dot { background: #ff3344; }
     .j-row-error .j-label, .j-row-error .j-value { color: #ff3344; }
+    .live-recent-play { animation: live-recent-play-in 1.6s ease-out; }
+    @keyframes live-recent-play-in {
+      0% { background-color: rgba(68,255,204,0.25); }
+      100% { background-color: transparent; }
+    }
     .score-card, .notification li { transition: transform 0.15s ease, background-color 0.15s ease; cursor: pointer !important; }
     .score-card:hover, .notification li:hover { transform: translateY(-2px); filter: brightness(1.1); }
     .media-overlay {
@@ -578,7 +583,7 @@ block content
           if sdvxStats.recentPlays && sdvxStats.recentPlays.length > 0
             h3.section-title Recent Plays
             .notification.is-dark.has-text-left.mb-6
-               ul(style="list-style: none; padding: 0;")
+               ul#sdvx-recent-plays-list(style="list-style: none; padding: 0;")
                  each play in sdvxStats.recentPlays
                    li.mb-3(class=(play.clear ? getSdvxClearClass(play.clear) : '') style="padding-left: 10px; border-radius: 4px; cursor: pointer;" onclick="openSdvxScoreModal(this)" data-play=JSON.stringify(play))
                      .is-flex.is-align-items-center
@@ -748,6 +753,7 @@ block scripts
     const JACKET_DUMMY = 'https://jackets.ryu7w7.xyz/sdvx/jk_dummy.png';
     const MODAL_PLAYER_NAME = '!{profile.name}';
     const MODAL_PLAYER_AVATAR = '!{profile.avatarUrl ? "/uploads/" + profile.avatarUrl : "/static/img/avatar.jpg"}';
+    const PROFILE_REFID = '!{profile.__refid}';
     // jacketFallback MUST be defined before any <img> onerror fires.
     function jacketFallback(img) {
       // Try falling back: _4 -> _3 -> _2 -> _1 -> dummy
@@ -951,6 +957,72 @@ block scripts
       var labels = ["NO DATA", "PLAYED", "EFFECTIVE CLEAR", "EXCESSIVE CLEAR", "MAXXIVE CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN"];
       return labels[clear] || "PLAYED";
     }
+
+    function getSdvxClearClassJS(clearVal) {
+      var c = Number(clearVal);
+      if (c === 5) return 'clear-puc';
+      if (c === 4) return 'clear-uc';
+      if (c === 3) return 'clear-exc';
+      if (c === 2) return 'clear-comp';
+      if (c === 1) return 'clear-fail';
+      return '';
+    }
+
+    // Live update: when this profile's own refid just submitted a new SDVX
+    // score (see _layout.pug's 'live-score' event, sourced from
+    // /live/scores), prepend it to the Recent Plays list immediately instead
+    // of waiting for a page refresh.
+    window.addEventListener('live-score', function(e) {
+      var evt = e.detail;
+      if (!evt || evt.game !== 'sdvx' || String(evt.refid) !== String(PROFILE_REFID)) return;
+
+      var list = document.getElementById('sdvx-recent-plays-list');
+      if (!list) return;
+
+      var play = {
+        title: evt.title || ('Chart #' + evt.mid),
+        diff: evt.diff || '',
+        score: evt.score || 0,
+        exscore: evt.exscore || 0,
+        clear: evt.clear || 0,
+        grade: evt.grade || 0,
+        dateStr: 'Just now',
+        jacketUrl: evt.jacketUrl || JACKET_DUMMY,
+        isFirstPlace: false,
+        maxChain: evt.maxChain || 0,
+        critical: evt.critical || 0,
+        s_critical: evt.s_critical || 0,
+        near: evt.near || 0,
+        error: evt.error || 0,
+        early: evt.early || 0,
+        late: evt.late || 0
+      };
+
+      var li = document.createElement('li');
+      li.className = 'mb-3 live-recent-play' + (play.clear ? ' ' + getSdvxClearClassJS(play.clear) : '');
+      li.style.cssText = 'padding-left: 10px; border-radius: 4px; cursor: pointer;';
+      li.setAttribute('onclick', 'openSdvxScoreModal(this)');
+      li.setAttribute('data-play', JSON.stringify(play));
+      li.innerHTML =
+        '<div class="is-flex is-align-items-center">' +
+          '<img src="' + play.jacketUrl + '" onerror="jacketFallback(this)" style="width: 40px; height: 40px; border-radius: 4px; margin-right: 12px; object-fit: cover;">' +
+          '<div style="flex: 1;">' +
+            '<div>' +
+              '<span class="icon is-small" style="color: #00d1b2;"><i class="mdi mdi-history"></i></span>' +
+              '<span class="has-text-weight-bold">' + MODAL_PLAYER_NAME + '</span>' +
+              ' played ' +
+              '<span class="has-text-weight-bold" style="color: #66c2ff;">' + play.title + ' [' + play.diff + ']</span>' +
+              ' - ' + play.score +
+            '</div>' +
+            '<div style="color: #888; font-size: 0.8rem;">Just now</div>' +
+          '</div>' +
+        '</div>';
+
+      list.insertBefore(li, list.firstChild);
+      while (list.children.length > 5) {
+        list.removeChild(list.lastChild);
+      }
+    });
 
 block modal
   div.modal#score-detail-modal

@@ -285,7 +285,12 @@ html.has-aside-left.has-aside-mobile-transition.has-navbar-fixed-top.has-aside-e
             var source = new EventSource('/live/scores');
             source.addEventListener('score', function(e) {
               try {
-                pushToast(JSON.parse(e.data));
+                var evt = JSON.parse(e.data);
+                pushToast(evt);
+                // Let page-specific scripts (e.g. a profile page viewing its
+                // own refid) react and update in-page content live, without
+                // needing a second SSE connection per page.
+                window.dispatchEvent(new CustomEvent('live-score', { detail: evt }));
               } catch (err) {
                 console.error('Failed to parse live score event', err);
               }
