@@ -27,7 +27,7 @@ export interface TachiRecentPlay {
 
 function tachiGet(urlPath: string, token: string): Promise<any> {
   return new Promise((resolve, reject) => {
-    https
+    const req = https
       .get(`${TACHI_BASE_URL}${urlPath}`, { headers: { Authorization: `Bearer ${token}` } }, (r: any) => {
         let body = '';
         r.on('data', (c: string) => (body += c));
@@ -36,6 +36,9 @@ function tachiGet(urlPath: string, token: string): Promise<any> {
         });
       })
       .on('error', reject);
+    req.setTimeout(5000, () => {
+      req.destroy(new Error('Tachi request timed out'));
+    });
   });
 }
 
@@ -49,15 +52,27 @@ const GRADE_MAP: Record<string, number> = {
   D: 1, C: 2, B: 3, A: 4, 'A+': 5, AA: 6, 'AA+': 7, AAA: 8, 'AAA+': 9, S: 10, PUC: 10,
 };
 
+// Short-lived cache so repeat profile-page views (or several people looking
+// at the same profile) within a few seconds of each other don't each fire a
+// fresh request at Tachi. Keyed by token since that's what callers have.
+const CACHE_TTL_MS = 15000;
+const recentPlaysCache = new Map<string, { at: number; data: TachiRecentPlay[] | null }>();
+
 /**
  * Fetches this user's actual last 100 SDVX plays from Tachi (not personal-bests),
  * using the same bearer token already stored for score auto-export.
  * Returns null on any failure (caller should fall back to local PB-based data).
  */
 export async function getTachiRecentSdvxPlays(token: string): Promise<TachiRecentPlay[] | null> {
+  const cached = recentPlaysCache.get(token);
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.data;
+
   try {
     const result = await tachiGet('/api/v1/users/me/games/sdvx/scores/recent', token);
-    if (!result || !result.success || !result.body) return null;
+    if (!result || !result.success || !result.body) {
+      recentPlaysCache.set(token, { at: Date.now(), data: null });
+      return null;
+    }
 
     const scores: any[] = result.body.scores || [];
     const charts: any[] = result.body.charts || [];
@@ -102,8 +117,12 @@ export async function getTachiRecentSdvxPlays(token: string): Promise<TachiRecen
     // Tachi's "recent" endpoint isn't guaranteed sorted; enforce most-recent-first ourselves.
     plays.sort((a, b) => (b.timeAchieved || 0) - (a.timeAchieved || 0));
 
+    recentPlaysCache.set(token, { at: Date.now(), data: plays });
     return plays;
   } catch {
+    // Don't cache transient failures (timeout, Tachi down, etc.) — let the
+    // next request retry immediately rather than being stuck failing for
+    // the full TTL.
     return null;
   }
 }
