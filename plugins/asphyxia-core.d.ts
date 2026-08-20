@@ -1214,3 +1214,26 @@ declare namespace DB {
 /** @ignore */
 // @ts-ignore
 declare const _: any;
+
+interface ScoreEventPayload {
+  refid: string;
+  mid?: number | string;
+  type?: number | string;
+  score?: number;
+  exscore?: number;
+  clear?: number | string;
+  grade?: number | string;
+  critical?: number;
+  s_critical?: number;
+  near?: number;
+  error?: number;
+  early?: number;
+  late?: number;
+  maxChain?: number;
+  isNewBest?: boolean;
+  [key: string]: any;
+}
+
+declare namespace EVENTS {
+  function EmitScore(payload: ScoreEventPayload): void;
+}
