@@ -93,7 +93,7 @@ export async function handleRecentScoreCommand(interaction: any) {
     volforce: recent.volforce || 0,
     jacketUrl: sdvxJacketUrl(recent.mid, recent.type),
     maxChain: recent.maxChain || 0,
-    critical: recent.critical || 0,
+    critical: (recent.critical || 0) + (recent.s_critical || 0),
     near: recent.near || 0,
     error: recent.error || 0
   };

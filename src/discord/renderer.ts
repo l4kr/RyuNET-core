@@ -24,8 +24,7 @@ const COLORS = {
   info: '#38bdf8',
   
   // Judgements
-  scrit: '#ffe600',
-  crit: '#ffaa00',
+  crit: '#ffe600',
   near: '#44ffcc',
   error: '#ff3344',
   exscore: '#ffcc44',
