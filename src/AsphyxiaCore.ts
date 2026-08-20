@@ -66,8 +66,10 @@ function Main() {
   Logger.info(chalk.redBright(pad(`FREE SOFTWARE. BEWARE OF SCAMMERS.`, 60)));
   Logger.info(pad(`If you bought this software, request refund immediately.`, 60));
   Logger.info(` `);
-  Logger.info(`Log file: ${LOG_FILE_PATH}`);
-  Logger.info(` `);
+  if (ARGS.dev) {
+    Logger.info(`Log file: ${LOG_FILE_PATH}`);
+    Logger.info(` `);
+  }
 
   const EAMUSE = express();
 
