@@ -454,12 +454,12 @@ profileRouter.get(
                sdvxStats.trend = Array.from({length: 100}, (_, i) => sdvxStats.trend[Math.floor(i * step)]);
             }
 
-            // Recent Plays
+            // Recent Plays (sorted by last played, most recent first)
             const recentRecs = [...records].sort((a: any, b: any) => {
                const ta = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
                const tb = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
                return tb - ta;
-            }).slice(0, 5);
+            }).slice(0, 100);
             
             // Build a Set of first-place keys for O(1) lookup in recentPlays
             const { getCachedResult: _getCachedForRecent } = require('./leaderboard');
@@ -612,12 +612,12 @@ profileRouter.get(
                iidxStats.trend = Array.from({length: 100}, (_, i) => iidxStats.trend[Math.floor(i * step)]);
             }
 
-            // Recent Plays
+            // Recent Plays (sorted by last played, most recent first)
             const recentRecs = [...flatScores].sort((a: any, b: any) => {
                const ta = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
                const tb = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
                return tb - ta;
-            }).slice(0, 5);
+            }).slice(0, 100);
             
             iidxStats.recentPlays = recentRecs.map((play: any) => ({
                  title: getIidxTitle(play.mid),
