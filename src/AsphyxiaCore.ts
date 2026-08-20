@@ -11,6 +11,7 @@ import { LoadExternalPlugins } from './eamuse/ExternalPluginLoader';
 import { webui } from './webui/index';
 import path from 'path';
 import { ASSETS_PATH, LoadCoreDB, SeedDefaultAdmin } from './utils/EamuseIO';
+import { initLiveFeedStore } from './utils/LiveFeedStore';
 import open from 'open';
 import { Migrate } from './utils/migration';
 import { StartDiscordBot } from './discord/bot';
@@ -32,6 +33,8 @@ function Main() {
   ReadConfig();
 
   process.title = `${CONFIG.server_name || 'Asphyxia Core'} ${VERSION}`;
+
+  initLiveFeedStore();
 
   Logger.info('                        _                _        ');
   Logger.info('        /\\             | |              (_)      ');

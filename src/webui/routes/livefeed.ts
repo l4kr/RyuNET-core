@@ -1,9 +1,7 @@
 import { Router } from 'express';
-import { APIFind, FindCardsByRefid, FindUserByCardNumber, GetProfiles } from '../../utils/EamuseIO';
-import { ROOT_CONTAINER } from '../../eamuse/index';
+import { GetProfiles } from '../../utils/EamuseIO';
 import { data } from '../shared/helpers';
-import { getSdvxTitle, getSdvxDiff } from './profile';
-import { sdvxJacketUrl } from '../../utils/sdvx_jacket_resolver';
+import { getLiveFeedEntries } from '../../utils/LiveFeedStore';
 import { wrap } from '../shared/middleware';
 
 export const livefeedRouter = Router();
@@ -25,74 +23,25 @@ function timeAgo(date: any) {
 }
 
 // Site-wide feed of the 100 most recent SDVX plays, across every player,
-// sorted most-recent-first. Populated on initial load from the DB, then kept
-// live via the same '/live/scores' SSE stream / 'live-score' window event
-// that powers the toast notifications and the profile page's own feed.
+// sorted most-recent-first. Backed by an in-memory buffer (LiveFeedStore)
+// fed straight from the same raw per-play events broadcast over the
+// '/live/scores' SSE stream — NOT the plugin's personal-best collection, so
+// score/exscore here are what was actually just played, not a player's
+// all-time best. The buffer only holds plays recorded since this process
+// started; it does not backfill from history on a fresh restart.
 livefeedRouter.get('/live-feed', wrap(async (req, res, next) => {
-  const plugin = ROOT_CONTAINER.getPluginByID('sdvx@asphyxia');
-  if (!plugin) return next();
-
-  const docs = await APIFind({ identifier: plugin.Identifier, core: true }, null, { collection: 'music' });
-
   const allProfiles = (await GetProfiles()) || [];
   const profileMap = new Map(allProfiles.map((p: any) => [String(p.__refid), p]));
 
-  const musicDocs = (docs || []).filter((d: any) => d.mid != null && d.type != null && d.updatedAt);
-
-  const recent = [...musicDocs]
-    .sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .filter((d: any) => {
-      const p: any = profileMap.get(String(d.__refid));
+  const plays = getLiveFeedEntries(100)
+    .filter((play: any) => {
+      const p: any = profileMap.get(String(play.refid));
       return !p?.isPrivate;
     })
-    .slice(0, 100);
-
-  // Resolve usernames (best effort, same approach as the SSE enrichment in live.ts)
-  const usernameCache = new Map<string, string>();
-  async function resolveUsername(refid: string): Promise<string> {
-    if (usernameCache.has(refid)) return usernameCache.get(refid)!;
-    let username = (profileMap.get(String(refid)) as any)?.name || 'Unknown';
-    try {
-      const cards = await FindCardsByRefid(refid);
-      if (cards && Array.isArray(cards)) {
-        for (const card of cards) {
-          const acct = (await FindUserByCardNumber(card.cid)) || (await FindUserByCardNumber(card.print));
-          if (acct) {
-            username = acct.username;
-            break;
-          }
-        }
-      }
-    } catch { /* best effort */ }
-    usernameCache.set(refid, username);
-    return username;
-  }
-
-  const plays = await Promise.all(
-    recent.map(async (play: any) => {
-      const profile: any = profileMap.get(String(play.__refid));
-      return {
-        refid: play.__refid,
-        username: await resolveUsername(play.__refid),
-        avatarUrl: profile?.avatarUrl ? `/uploads/${profile.avatarUrl}` : '/static/img/avatar.jpg',
-        title: getSdvxTitle(play.mid),
-        diff: getSdvxDiff(play.mid, play.type),
-        jacketUrl: sdvxJacketUrl(play.mid, play.type),
-        score: play.score || 0,
-        exscore: play.exscore || 0,
-        clear: play.clear || 0,
-        grade: play.grade || 0,
-        maxChain: play.maxChain || 0,
-        critical: play.critical || 0,
-        s_critical: play.s_critical || play.just || 0,
-        near: play.near || 0,
-        error: play.error || 0,
-        early: play.early || 0,
-        late: play.late || 0,
-        dateStr: timeAgo(play.updatedAt),
-      };
-    })
-  );
+    .map((play: any) => ({
+      ...play,
+      dateStr: timeAgo(play.timestamp),
+    }));
 
   return res.render('livefeed', data(req, 'Live Feed', 'core', { plays }));
 }));
