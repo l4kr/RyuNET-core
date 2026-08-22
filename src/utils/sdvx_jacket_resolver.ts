@@ -3,17 +3,26 @@
  *
  * Resolves SDVX jacket URLs with two strategies:
  *
- * 1. DISK MODE (preferred): If SDVX_MUSIC_ROOT env var is set, scans the
- *    actual music directory to find the real folder name for a given mid,
- *    just like bot.js does. This gives 100% accurate folder names.
+ * 1. DISK MODE (preferred): scans real music directories to find the real
+ *    folder name for a given mid, just like bot.js does. This gives 100%
+ *    accurate folder names. Roots are derived automatically from the SDVX
+ *    plugin's own "Game Data Directory" setting (sdvx_eg_root_dir) --
+ *    the same folder already used for asset copying and custom chart
+ *    uploads -- so this works without any extra configuration:
+ *      <Game Data Directory>/data_mods/<custom mix name>/music
+ *      <Game Data Directory>/data_mods/omnimix/music
+ *      <Game Data Directory>/data/music
  *
  * 2. STATIC MAP MODE (fallback): Uses the pre-built sdvxJackets map from
- *    sdvx_jackets.ts. This can be stale or missing newer songs.
+ *    sdvx_jackets.ts. This can be stale or missing newer songs. Used only
+ *    when no music root can be resolved at all (e.g. plugin not installed
+ *    or Game Data Directory not yet configured).
  *
- * Usage:
- *   Set SDVX_MUSIC_ROOT in your environment to the SDVX music folder, e.g.:
- *     SDVX_MUSIC_ROOT=/mnt/extra/bhub/SDVX/data/music
- *   Optionally also set SDVX_CUSTOM_MUSIC_ROOT for custom song overrides.
+ * Manual overrides:
+ *   Set sdvx_music_root / sdvx_custom_music_root in core config (or the
+ *   SDVX_MUSIC_ROOT / SDVX_CUSTOM_MUSIC_ROOT env vars) if the music folder
+ *   lives somewhere other than what the SDVX plugin's Game Data Directory
+ *   would imply (e.g. a network share mounted at a different path).
  */
 
 import fs from 'fs';
@@ -25,9 +34,42 @@ import { CONFIG } from './ArgConfig';
 const JACKETS_BASE_URL = 'https://jackets.ryu7w7.xyz/sdvx';
 export const DUMMY_JACKET_URL = `${JACKETS_BASE_URL}/jk_dummy.png`;
 
+const SDVX_PLUGIN_ID = 'sdvx@asphyxia';
+
 // Note: dynamic getters so it respects changes at runtime without restart
-const getMusicRoot = () => CONFIG.sdvx_music_root || process.env.SDVX_MUSIC_ROOT || '';
-const getCustomMusicRoot = () => CONFIG.sdvx_custom_music_root || process.env.SDVX_CUSTOM_MUSIC_ROOT || '';
+const getMusicRootOverride = () => CONFIG.sdvx_music_root || process.env.SDVX_MUSIC_ROOT || '';
+const getCustomMusicRootOverride = () => CONFIG.sdvx_custom_music_root || process.env.SDVX_CUSTOM_MUSIC_ROOT || '';
+
+/**
+ * Every local folder that may contain jackets, most-specific first:
+ *   1. Explicit manual overrides (sdvx_music_root / sdvx_custom_music_root), if set.
+ *   2. Custom/curated charts: <Game Data Directory>/data_mods/<mix name>/music
+ *   3. Omnimix: <Game Data Directory>/data_mods/omnimix/music
+ *   4. Stock: <Game Data Directory>/data/music
+ *
+ * Derived automatically from the SDVX plugin's own "Game Data Directory"
+ * config (sdvx_eg_root_dir), so jacket resolution works locally without any
+ * extra configuration beyond what's already needed for asset copying.
+ */
+export function getSdvxMusicRoots(): string[] {
+  const roots: string[] = [];
+
+  const overrideCustom = getCustomMusicRootOverride();
+  if (overrideCustom) roots.push(overrideCustom);
+  const overrideStock = getMusicRootOverride();
+  if (overrideStock) roots.push(overrideStock);
+
+  const sdvxConfig = CONFIG[SDVX_PLUGIN_ID] || {};
+  const gameRoot = (sdvxConfig.sdvx_eg_root_dir || '').toString().trim();
+  if (gameRoot) {
+    const mixName = (sdvxConfig.sdvx_custom_mix_name || 'asphyxia_custom').toString().trim();
+    roots.push(path.join(gameRoot, 'data_mods', mixName, 'music'));
+    roots.push(path.join(gameRoot, 'data_mods', 'omnimix', 'music'));
+    roots.push(path.join(gameRoot, 'data', 'music'));
+  }
+
+  return [...new Set(roots)].filter(Boolean);
+}
 
 // Cache: mid (number) -> actual folder name found on disk
 const folderCache = new Map<number, string | null>();
@@ -99,7 +141,7 @@ function findFolderOnDisk(mid: number): string | null {
 
   const mid4 = String(mid).padStart(4, '0');
   const prefix = `${mid4}_`;
-  const roots = [getCustomMusicRoot(), getMusicRoot()].filter(Boolean);
+  const roots = getSdvxMusicRoots();
 
   for (const root of roots) {
     const dirs = getDirListingSync(root);
@@ -125,7 +167,7 @@ function resolveFolderName(mid: number | string): string | null {
   const midStr = String(mid);
   const mid4 = String(mid).padStart(4, '0');
 
-  if (getMusicRoot() || getCustomMusicRoot()) {
+  if (getSdvxMusicRoots().length) {
     return findFolderOnDisk(midNum);
   }
 
@@ -138,7 +180,7 @@ function resolveFolderName(mid: number | string): string | null {
  * Only used in disk mode to pick the best available variant.
  */
 function jacketFileExists(folder: string, mid4: string, variant: number): boolean {
-  const roots = [getCustomMusicRoot(), getMusicRoot()].filter(Boolean);
+  const roots = getSdvxMusicRoots();
   const fname = `jk_${mid4}_${variant}.png`;
   for (const root of roots) {
     if (fs.existsSync(path.join(root, folder, fname))) return true;
@@ -186,7 +228,7 @@ export function sdvxJacketUrl(mid: number | string, type: number | string): stri
     return DUMMY_JACKET_URL;
   }
 
-  if (getMusicRoot() || getCustomMusicRoot()) {
+  if (getSdvxMusicRoots().length) {
     // Disk mode: verify which variant actually exists (cached per mid+type)
     const variant = bestVariant(Number(mid), type, folder, mid4);
     if (variant !== null) {
@@ -213,7 +255,7 @@ export function jacketDiskPath(url: string): string | null {
   if (!m) return null;
   const [, folder, mid4, variant] = m;
   const fname = `jk_${mid4}_${variant}.png`;
-  const roots = [getCustomMusicRoot(), getMusicRoot()].filter(Boolean);
+  const roots = getSdvxMusicRoots();
   for (const root of roots) {
     const p = path.join(root, folder, fname);
     if (fs.existsSync(p)) return p;
@@ -226,7 +268,7 @@ export function jacketDiskPath(url: string): string | null {
  * Call once at startup so jacket lookups never touch the disk synchronously.
  */
 export async function prewarmJacketRoots(): Promise<void> {
-  const roots = [getCustomMusicRoot(), getMusicRoot()].filter(Boolean);
+  const roots = getSdvxMusicRoots();
   if (!roots.length) return;
   try {
     await Promise.all(roots.map(root => loadDirListing(root)));
@@ -241,7 +283,7 @@ export async function prewarmJacketRoots(): Promise<void> {
  * to avoid per-request directory scans.
  */
 export async function prewarmJacketCache(mids: (number | string)[]): Promise<void> {
-  const roots = [getCustomMusicRoot(), getMusicRoot()].filter(Boolean);
+  const roots = getSdvxMusicRoots();
   if (!roots.length) return;
   try {
     await Promise.all(roots.map(root => loadDirListing(root)));

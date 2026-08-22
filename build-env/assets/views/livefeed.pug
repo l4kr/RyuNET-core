@@ -93,8 +93,8 @@ block content
         ul#live-feed-list(style="list-style: none; padding: 0;")
           each play in plays
             li.live-feed-card(class=(play.clear ? getClearClass(play.clear) : '') onclick="openLiveFeedModal(this)" data-play=JSON.stringify(play))
-              img.live-feed-avatar(src=play.avatarUrl onerror="this.src='/static/img/avatar.jpg'")
-              img.live-feed-jacket(src=play.jacketUrl onerror="jacketFallback(this)")
+              img.live-feed-avatar(src=play.avatarUrl loading="lazy" decoding="async" onerror="this.src='/static/img/avatar.jpg'")
+              img.live-feed-jacket(src=play.jacketUrl loading="lazy" decoding="async" onerror="jacketFallback(this)")
               .live-feed-info
                 div
                   span.live-feed-user #{play.username}
@@ -288,8 +288,8 @@ block scripts
       li.setAttribute('onclick', 'openLiveFeedModal(this)');
       li.setAttribute('data-play', JSON.stringify(play));
       li.innerHTML =
-        '<img class="live-feed-avatar" src="' + play.avatarUrl + '" onerror="this.src=\'/static/img/avatar.jpg\'">' +
-        '<img class="live-feed-jacket" src="' + play.jacketUrl + '" onerror="jacketFallback(this)">' +
+        '<img class="live-feed-avatar" src="' + play.avatarUrl + '" decoding="async" onerror="this.src=\'/static/img/avatar.jpg\'">' +
+        '<img class="live-feed-jacket" src="' + play.jacketUrl + '" decoding="async" onerror="jacketFallback(this)">' +
         '<div class="live-feed-info">' +
           '<div>' +
             '<span class="live-feed-user">' + play.username + '</span>' +

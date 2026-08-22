@@ -12,6 +12,7 @@ import { webui } from './webui/index';
 import path from 'path';
 import { ASSETS_PATH, LoadCoreDB, SeedDefaultAdmin } from './utils/EamuseIO';
 import { initLiveFeedStore } from './utils/LiveFeedStore';
+import { getSdvxMusicRoots, prewarmJacketRoots } from './utils/sdvx_jacket_resolver';
 import open from 'open';
 import { Migrate } from './utils/migration';
 import { StartDiscordBot } from './discord/bot';
@@ -85,6 +86,12 @@ function Main() {
   const external = LoadExternalPlugins();
   SaveConfig();
 
+  // SDVX plugin config (Game Data Directory) is now loaded, so jacket
+  // roots can be resolved -- pre-warm the directory listing cache before
+  // the first request so /live-feed and profile pages never block on a
+  // synchronous directory scan.
+  void prewarmJacketRoots();
+
   process.title = `${CONFIG.server_name || 'Asphyxia Core'} ${VERSION} | Plugins: ${external.length
     }`;
   if (external.length <= 0) {
@@ -100,12 +107,13 @@ function Main() {
   const UPLOADS_PATH = path.join((process as any).pkg ? path.dirname(process.argv0) : process.cwd(), 'uploads');
   EAMUSE.use('/uploads', express.static(UPLOADS_PATH));
   
-  // Custom and Official local jackets support via Express
-  if (CONFIG.sdvx_custom_music_root) {
-    EAMUSE.use('/jackets/sdvx', express.static(CONFIG.sdvx_custom_music_root));
-  }
-  if (CONFIG.sdvx_music_root) {
-    EAMUSE.use('/jackets/sdvx', express.static(CONFIG.sdvx_music_root));
+  // Custom, Omnimix, and Official local jackets support via Express.
+  // Roots are derived automatically from the SDVX plugin's own Game Data
+  // Directory config (see sdvx_jacket_resolver.ts); sdvx_music_root /
+  // sdvx_custom_music_root remain as manual overrides for unusual setups.
+  // Long cache lifetime speeds up repeat loads since jackets rarely change.
+  for (const root of getSdvxMusicRoots()) {
+    EAMUSE.use('/jackets/sdvx', express.static(root, { maxAge: '7d', immutable: true }));
   }
 
   EAMUSE.use(webui);
